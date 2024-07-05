@@ -1,0 +1,11 @@
+{
+  "name": "communism.js",
+  "version": "1.0.0",
+  "description": "Workers unite and seize the means of production",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "James Koppel",
+  "license": "ISC"
+}
