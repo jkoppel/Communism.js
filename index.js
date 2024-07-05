@@ -27,19 +27,19 @@ class FiveMinutePlan {
         this.allocations = allocations;
     }
 
-    useFunctionRation(caller, callee) {
-        if (this.allocations.has(caller) &&
-            this.allocations.get(caller).has(callee)) {
+    useFunctionRation(worker, callee) {
+        if (this.allocations.has(worker.id) &&
+            this.allocations.get(worker.id).has(callee)) {
 
 
-                const numUses = this.allocations.get(caller).get(callee);
+                const numUses = this.allocations.get(worker.id).get(callee);
                 if (numUses > 0) {
-                    this.allocations.get(caller).set(callee, numUses - 1);
+                    this.allocations.get(worker.id).set(callee, numUses - 1);
                     return;
                 }
         }
 
-        throw new Error(`Function ${caller.name} has exceeded its allocation for function ${callee.name}!`);
+        throw new Error(`Worker ${worker.id} has exceeded its allocation for function ${callee.name}!`);
     }
 }
 
@@ -49,18 +49,18 @@ class PlannningCommittee {
         this.proposedAllocations = new Map();
     }
 
-    ration(caller, callee, numUses) {
+    ration(worker, callee, numUses) {
         if (callee[LIBERATED] === true) {
             callee = callee[CAPITALIST_VERSION];
         }
 
-        if (!this.proposedAllocations.has(caller)) {
-            this.proposedAllocations.set(caller, new Map());
+        if (!this.proposedAllocations.has(worker.id)) {
+            this.proposedAllocations.set(worker.id, new Map());
         }
 
-        this.proposedAllocations.get(caller).set(callee, numUses);
+        this.proposedAllocations.get(worker.id).set(callee, numUses);
 
-        console.debug(`Rationed ${caller} to ${callee} for ${numUses} uses`);
+        console.debug(`Rationed ${worker.id} to ${callee.name} for ${numUses} uses`);
     }
 
     adopt() {
@@ -102,11 +102,13 @@ function makeLiberatedFunction(originalFunction) {
             return originalFunction.apply(this, arguments);
         }
 
-        currentFiveMinutePlan.useFunctionRation(arguments.callee.caller, originalFunction);
+        currentFiveMinutePlan.useFunctionRation(arguments.callee.caller[WORKER], originalFunction);
 
         const result = originalFunction.apply(this, arguments);
 
-        //return makeLiberatedValue(result);
+        // TODO: Figure out how deep into capitalist territory the revolution can strike
+        //       before the order begins to crumble.
+        // return makeLiberatedValue(result);
         return result;
     }
 
@@ -155,7 +157,21 @@ function seize(packageName) {
 //              Workers unite!
 // #######################################
 
-class Worker {}
+const WORKER = Symbol('worker');
+
+let WORKER_COUNTER = 0;
+
+class Worker {
+    constructor(abilities) {
+        this.abilities = abilities;
+        this.id = WORKER_COUNTER++;
+        
+        for (const key in abilities) {
+            abilities[key][WORKER] = this;
+            this[key] = abilities[key];
+        }
+    }
+}
 
 class Proletariat {
     constructor(workers) {
@@ -174,22 +190,23 @@ class Proletariat {
 //           Viva la revolución!
 // #######################################
 
-const [worker1, worker2, worker3] = [new Worker(), new Worker(), new Worker()];
+const worker1 = new Worker({consume: () => console.log(fs.readFileSync('README.md', 'utf8'))});
+const worker2 = new Worker();
+const worker3 = new Worker();
+
 const revolution = new Proletariat([worker1, worker2, worker3]).unite();
 
 // Workers seize the means of production
-const path = revolution.seize('path');
-
-function foo() {
-    console.log(path.join('foo', 'bar'));
-}
+var fs = revolution.seize('fs');
 
 // Set a five-minute plan
 const committee = new PlannningCommittee();
-committee.ration(foo, path.join, 2);
+committee.ration(worker1, fs.readFileSync, 2);
 committee.adopt();
 
 // Use the coupons 
-console.log(foo());
-console.log(foo());
-console.log(foo());
+worker1.consume();
+worker1.consume();
+
+// Errors because worker1 has exceeded its allocation and needs to wait for the next five-minute plan
+worker1.consume(); 
